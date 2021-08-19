@@ -1,0 +1,17 @@
+diff --git a/node_modules/@types/jsmediatags/index.d.ts b/node_modules/@types/jsmediatags/index.d.ts
+index 4c10b89..842a5cf 100755
+--- a/node_modules/@types/jsmediatags/index.d.ts
++++ b/node_modules/@types/jsmediatags/index.d.ts
+@@ -3,10 +3,10 @@
+ // Definitions by: Gunnar Már Óttarsson <https://github.com/gunnim>
+ // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
+ 
+-import { CallbackType, LoadCallbackType } from './types';
+ import MediaFileReader from './build2/MediaFileReader';
+ import MediaTagReader from './build2/MediaTagReader';
+-
++import { CallbackType, LoadCallbackType } from './types';
++export * from "./types";
+ export as namespace jsmediatags;
+ export function read(location: any, callbacks: CallbackType): void;
+ 
