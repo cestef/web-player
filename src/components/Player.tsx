@@ -3,7 +3,7 @@ import {
   IconButton,
   LinearProgress,
   makeStyles,
-  Typography,
+  Typography
 } from "@material-ui/core";
 import { MusicNote, Settings, VolumeUp } from "@material-ui/icons";
 import { MutableRefObject, SetStateAction } from "react";
@@ -20,7 +20,7 @@ const useStyles = makeStyles((theme) => ({
     marginTop: 50,
   },
   player: {
-    [theme.breakpoints.up("md")]: {
+    [theme.breakpoints.up("lg")]: {
       marginTop: 100,
     },
     marginTop: 40,
@@ -75,7 +75,10 @@ const Player = ({
       )}
 
       <Typography variant="h4">
-        {songPlaying || "Nothing is playing"}
+        {songList[currentSong.current]?.tags.title || songPlaying  || "Nothing is playing"}
+      </Typography>
+      <Typography variant="body1" color="textSecondary" style={{marginTop:10}}>
+        {songList[currentSong.current]?.tags.artist || "Unknown artist"}
       </Typography>
 
       <div className={classes.progress}>

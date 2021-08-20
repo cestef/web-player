@@ -83,7 +83,14 @@ const Song = ({
             )}
 
             <Typography variant="h6">
-              {currentSong.current === index ? <u>{song.name}</u> : song.name}
+              <u
+                style={{
+                  textDecoration: currentSong.current === index ? "" : "none",
+                }}
+              >
+                {(song.tags.artist ? song.tags.artist + " - " : "") +
+                  (song.tags.title || song.name)}
+              </u>
             </Typography>
           </ListItem>
         )}

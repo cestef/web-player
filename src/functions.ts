@@ -12,7 +12,7 @@ export const getAudioBuffer = (
         resolve(buffer);
       },
       (error) => {
-        if (error) reject(error);
+        if (error) reject(error.message);
       }
     );
   });
@@ -41,7 +41,7 @@ export const getTags = (file: any) =>
         resolve(data.tags);
       },
       onError: (err) => {
-        if (err) reject(err);
+        if (err) resolve({});
       },
     });
   });

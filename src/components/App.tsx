@@ -9,11 +9,11 @@ import {
   MenuItem,
   Slider,
   Tooltip,
-  Typography,
+  Typography
 } from "@material-ui/core";
 import { Delete } from "@material-ui/icons";
 import { Tags } from "jsmediatags";
-import { useEffect, useRef, useState } from "react";
+import { SetStateAction, useEffect, useRef, useState } from "react";
 import { DragDropContext, Droppable, DropResult } from "react-beautiful-dnd";
 import { DropEvent, FileRejection } from "react-dropzone";
 import {
@@ -24,7 +24,7 @@ import {
   mapQueueToSongList,
   playAudio,
   setBool,
-  shuffleArray,
+  shuffleArray
 } from "../functions";
 import { ControlsPropsType } from "./Controls";
 import FileInput, { FileInputPropsType } from "./FileInput";
@@ -91,7 +91,11 @@ export interface PartialSong {
   coverURL?: string;
 }
 
-const App = () => {
+const App = ({
+  setTheme,
+}: {
+  setTheme: (value: SetStateAction<string>) => void;
+}) => {
   const classes = useStyles();
 
   const queue = useRef<Song[]>([]);
@@ -226,7 +230,7 @@ const App = () => {
         );
       const newFile: File & { buffer: ArrayBuffer } = {
         ...file,
-        name: file.name.replace(new RegExp(ACCEPT.join("|")), ""),
+        name: file.name.replace(new RegExp(ACCEPT.join("|"), "g"), ""),
         buffer: await file.arrayBuffer(),
       };
       let buffer: AudioBuffer | null = null;
@@ -387,7 +391,7 @@ const App = () => {
           max={100}
           value={volume}
           onChange={changeVolume}
-          style={{ height: 100, padding: 15, marginTop: 10 }}
+          style={{ height: 100, padding: 15, marginTop: 10, marginBottom: -3 }}
           orientation="vertical"
         />
       </Menu>
