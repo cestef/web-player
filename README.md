@@ -17,7 +17,7 @@ npm start
 
 ## Live Demo
 
-If you are too lazy to run it locally or just want to see how it looks first, there is a demo available at [player.cstef.dev](player.cstef.dev)
+If you are too lazy to run it locally or just want to see how it looks first, there is a demo available at [player.cstef.dev](https://player.cstef.dev)
 
 ## Common Problems
 
