@@ -9,7 +9,7 @@ import {
   MenuItem,
   Slider,
   Tooltip,
-  Typography
+  Typography,
 } from "@material-ui/core";
 import { Delete } from "@material-ui/icons";
 import { Tags } from "jsmediatags";
@@ -18,13 +18,12 @@ import { DragDropContext, Droppable, DropResult } from "react-beautiful-dnd";
 import { DropEvent, FileRejection } from "react-dropzone";
 import {
   genID,
-  getAudioBuffer,
   getBool,
   getTags,
   mapQueueToSongList,
   playAudio,
   setBool,
-  shuffleArray
+  shuffleArray,
 } from "../functions";
 import { ControlsPropsType } from "./Controls";
 import FileInput, { FileInputPropsType } from "./FileInput";
@@ -77,16 +76,15 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 export interface Song {
-  buffer?: AudioBuffer;
-  file: File & { buffer: ArrayBuffer };
+  file: File;
   id: string;
   tags: Tags;
   coverURL?: string;
+  url: string;
 }
 export interface PartialSong {
   name: string;
   id: string;
-  duration: number;
   tags: Tags;
   coverURL?: string;
 }
@@ -97,7 +95,7 @@ const App = ({
   setTheme: (value: SetStateAction<string>) => void;
 }) => {
   const classes = useStyles();
-
+  const audio = useRef<HTMLAudioElement>();
   const queue = useRef<Song[]>([]);
   const currentSong = useRef<number>(-1);
   const ended = useRef<boolean>(false);
@@ -130,12 +128,6 @@ const App = ({
   const [songPlaying, setSongPlaying] = useState<string>();
   const [loading, setLoading] = useState<boolean>(false);
   const [songProgress, setSongProgress] = useState<number>(0);
-  const [showConvert, setShowConvert] = useState<boolean>(
-    getBool("showconvert")
-  );
-  const ctx = new AudioContext();
-  const source = useRef<AudioBufferSourceNode>();
-  const gainNode = useRef<GainNode>();
 
   useEffect(() => {
     const updateInterval = setInterval(() => {
@@ -145,14 +137,12 @@ const App = ({
         !ended.current
       ) {
         setSongProgress(
-          ((Date.now() - startTime.current) /
-            (queue.current[currentSong.current].buffer?.duration * 1000)) *
-            100
+          (audio.current.currentTime / audio.current.duration) * 100
         );
       } else if (songProgress !== 0 && ended.current) {
         setSongProgress(0);
       }
-    }, 1000);
+    }, 500);
     const titleInterval = setInterval(() => {
       if (songPlaying) document.title = songPlaying;
       else document.title = "cstef's Web Player";
@@ -161,47 +151,45 @@ const App = ({
       clearInterval(updateInterval);
       clearInterval(titleInterval);
     };
-  }, []);
-  const initAudio = async (buffer: AudioBuffer, volume: number = 1) => {
-    const newBuffer = await playAudio({
-      source,
-      buffer,
+  }, [songPlaying, songProgress]);
+  const initAudio = async (url: string, volume: number = 1) => {
+    await playAudio({
+      url,
       volume,
-      ctx,
       queue,
       currentSong,
       nextSong,
       setIsPlaying,
       setSongPlaying,
-      gainNode,
       startTime,
       lastPaused,
       isPlayingStatic,
       ended,
+      audio,
+      loop,
     });
-    if (!queue.current[currentSong.current].buffer) {
-      queue.current[currentSong.current].buffer = newBuffer;
-      setSongList(mapQueueToSongList(queue.current));
-    }
   };
 
   const nextSong = () => {
     if (queue.current[currentSong.current + 1]) {
       currentSong.current++;
       lastPaused.current = 0;
-      initAudio(queue.current[currentSong.current].buffer);
+      initAudio(queue.current[currentSong.current].url);
       return false;
+    } else {
+      setIsPlaying(false);
+      currentSong.current--;
+      return true;
     }
-    return true;
   };
   const previousSong = () => {
     if (queue.current[currentSong.current - 1]) {
       lastPaused.current = 0;
       currentSong.current--;
-      initAudio(queue.current[currentSong.current].buffer);
+      initAudio(queue.current[currentSong.current].url);
     } else {
       lastPaused.current = 0;
-      initAudio(queue.current[currentSong.current].buffer);
+      initAudio(queue.current[currentSong.current].url);
     }
   };
 
@@ -228,26 +216,23 @@ const App = ({
         coverURL = URL.createObjectURL(
           new Blob([Buffer.from(tags.picture?.data)])
         );
-      const newFile: File & { buffer: ArrayBuffer } = {
+      const newFile: File = {
         ...file,
         name: file.name.replace(new RegExp(ACCEPT.join("|"), "g"), ""),
-        buffer: await file.arrayBuffer(),
       };
-      let buffer: AudioBuffer | null = null;
-      if (!getBool("convertonplay"))
-        buffer = await getAudioBuffer(ctx, newFile);
-
+      const buffer: ArrayBuffer | null = await file.arrayBuffer();
+      const url = window.URL.createObjectURL(new Blob([buffer]));
       const id = genID(5);
       const length = queue.current.length;
       queue.current = [
         ...queue.current,
-        { buffer, file: newFile, id, tags, coverURL },
+        { url, file: newFile, id, tags, coverURL },
       ];
       setSongList(mapQueueToSongList(queue.current));
 
       if (length === 0 || ended.current) {
         currentSong.current++;
-        initAudio(buffer);
+        initAudio(url);
       }
 
       setProgress((e) => ({ ...e, current: e.current + 1 }));
@@ -256,19 +241,17 @@ const App = ({
     setLoading(false);
   };
   const toggleLoop = () => {
-    source.current.loop = !loop;
+    audio.current.loop = !loop;
     setLoop((e) => !e);
   };
   const togglePlay = () => {
-    if (!source.current) return;
+    if (!audio.current) return;
     if (!isPlaying) {
-      initAudio(source.current.buffer);
+      audio.current.play();
       isPlayingStatic.current = true;
       setIsPlaying(true);
     } else {
-      lastPaused.current = (Date.now() - startTime.current) / 1000;
-      source.current.onended = null;
-      source.current.stop();
+      audio.current.pause();
       isPlayingStatic.current = false;
       setIsPlaying(false);
     }
@@ -289,9 +272,8 @@ const App = ({
   };
 
   const changeVolume = (e, value) => {
+    audio.current.volume = value / 100;
     setVolume(value);
-    lastPaused.current = (Date.now() - startTime.current) / 1000;
-    initAudio(queue.current[currentSong.current]?.buffer, value / 100);
   };
   const deleteSong = () => {
     setClickMenuAnchorEl(null);
@@ -315,7 +297,6 @@ const App = ({
     queue,
     setClickMenuAnchorEl,
     setClickMenuID,
-    showConvert,
   };
   const controlsProps: ControlsPropsType = {
     nextSong,
@@ -334,6 +315,7 @@ const App = ({
     songPlaying,
     songProgress,
     controlsProps,
+    audio,
   };
   const fileInputProps: FileInputPropsType = {
     addFiles,
@@ -443,55 +425,6 @@ const App = ({
                 style={{ backgroundColor: "transparent" }}
                 onChange={(e) => setBool("autoshuffle", e.target.checked)}
                 defaultChecked={getBool("autoshuffle")}
-              />
-            </Tooltip>
-          </FormGroup>
-          <FormGroup style={{ marginTop: 10 }}>
-            <FormLabel>Convert on Play</FormLabel>
-            <Tooltip
-              title={
-                <Typography variant="body2" style={{ textAlign: "center" }}>
-                  Only decode audio data when you play the file (useful when you
-                  need to load big playlists)
-                </Typography>
-              }
-              placement="bottom"
-              arrow
-              enterDelay={1000}
-              enterTouchDelay={1000}
-              enterNextDelay={1000}
-            >
-              <Checkbox
-                disableRipple
-                style={{ backgroundColor: "transparent" }}
-                onChange={(e) => setBool("convertonplay", e.target.checked)}
-                defaultChecked={getBool("convertonplay")}
-              />
-            </Tooltip>
-          </FormGroup>
-          <FormGroup style={{ marginTop: 10 }}>
-            <FormLabel>Show convert status</FormLabel>
-            <Tooltip
-              title={
-                <Typography variant="body2" style={{ textAlign: "center" }}>
-                  Display a little icon next to each song with its convert
-                  status (useful when Convert on play is enabled)
-                </Typography>
-              }
-              placement="bottom"
-              arrow
-              enterDelay={1000}
-              enterTouchDelay={1000}
-              enterNextDelay={1000}
-            >
-              <Checkbox
-                disableRipple
-                checked={showConvert}
-                style={{ backgroundColor: "transparent" }}
-                onChange={(e) => {
-                  setBool("showconvert", e.target.checked);
-                  setShowConvert(e.target.checked);
-                }}
               />
             </Tooltip>
           </FormGroup>

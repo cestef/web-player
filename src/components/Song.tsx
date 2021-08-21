@@ -1,5 +1,4 @@
-import { ListItem, makeStyles, Tooltip, Typography } from "@material-ui/core";
-import { Check, Error } from "@material-ui/icons";
+import { ListItem, makeStyles, Typography } from "@material-ui/core";
 import { MutableRefObject, SetStateAction } from "react";
 import { Draggable } from "react-beautiful-dnd";
 import { PartialSong, Song as SongType } from "./App";
@@ -25,10 +24,9 @@ export interface SongPropsType {
   queue?: MutableRefObject<SongType[]>;
   currentSong?: MutableRefObject<number>;
   lastPaused?: MutableRefObject<number>;
-  initAudio?: (buffer: AudioBuffer) => void;
+  initAudio?: (url: string) => void;
   setClickMenuAnchorEl?: (value: SetStateAction<HTMLDivElement>) => void;
   setClickMenuID?: (value: SetStateAction<string>) => void;
-  showConvert?: boolean;
 }
 
 const Song = ({
@@ -40,7 +38,6 @@ const Song = ({
   initAudio,
   setClickMenuAnchorEl,
   setClickMenuID,
-  showConvert,
 }: SongPropsType) => {
   const classes = useStyles();
   const customMenu = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
@@ -62,26 +59,10 @@ const Song = ({
               if (currentSong.current !== index) {
                 lastPaused.current = 0;
                 currentSong.current = index;
-                initAudio(queue.current[index].buffer);
+                initAudio(queue.current[index].url);
               }
             }}
           >
-            {showConvert && (
-              <Tooltip
-                title={
-                  <Typography variant="body2" style={{ textAlign: "center" }}>
-                    {song.duration ? "Converted" : "Not Converted"}
-                  </Typography>
-                }
-              >
-                {song.duration ? (
-                  <Check className={classes.convertStatus} />
-                ) : (
-                  <Error className={classes.convertStatus} />
-                )}
-              </Tooltip>
-            )}
-
             <Typography variant="h6">
               <u
                 style={{

@@ -3,7 +3,7 @@ import {
   IconButton,
   LinearProgress,
   makeStyles,
-  Typography
+  Typography,
 } from "@material-ui/core";
 import { MusicNote, Settings, VolumeUp } from "@material-ui/icons";
 import { MutableRefObject, SetStateAction } from "react";
@@ -51,6 +51,7 @@ export interface PlayerPropsType {
   setAnchorElVolume: (value: SetStateAction<HTMLElement>) => void;
   songProgress: number;
   controlsProps: any;
+  audio: MutableRefObject<HTMLAudioElement>;
 }
 const Player = ({
   songList,
@@ -60,6 +61,7 @@ const Player = ({
   songProgress,
   setAnchorElVolume,
   controlsProps,
+  audio,
 }: PlayerPropsType) => {
   const classes = useStyles();
   return (
@@ -75,10 +77,16 @@ const Player = ({
       )}
 
       <Typography variant="h4">
-        {songList[currentSong.current]?.tags.title || songPlaying  || "Nothing is playing"}
+        {songList[currentSong.current]?.tags.title ||
+          songPlaying ||
+          "Nothing is playing"}
       </Typography>
-      <Typography variant="body1" color="textSecondary" style={{marginTop:10}}>
-        {songList[currentSong.current]?.tags.artist || "Unknown artist"}
+      <Typography
+        variant="body1"
+        color="textSecondary"
+        style={{ marginTop: 10 }}
+      >
+        {songList[currentSong.current]?.tags.artist || "Unknown artist"}
       </Typography>
 
       <div className={classes.progress}>
@@ -91,12 +99,9 @@ const Player = ({
 
           <Box minWidth={35}>
             <Typography variant="body2" color="textSecondary">
-              {songList[currentSong.current] &&
-              songList[currentSong.current]?.duration &&
-              songProgress
+              {audio.current && audio.current.duration && songProgress
                 ? formatMilliseconds(
-                    (songProgress / 100) *
-                      (songList[currentSong.current].duration * 1000)
+                    (songProgress / 100) * (audio.current.duration * 1000)
                   )
                 : "0:00"}
             </Typography>
@@ -112,11 +117,8 @@ const Player = ({
 
           <Box minWidth={35}>
             <Typography variant="body2" color="textSecondary">
-              {songList[currentSong.current] &&
-              songList[currentSong.current]?.duration
-                ? formatMilliseconds(
-                    songList[currentSong.current]?.duration * 1000
-                  )
+              {songList[currentSong.current] && audio.current.duration
+                ? formatMilliseconds(audio.current.duration * 1000)
                 : "0:00"}
             </Typography>
           </Box>

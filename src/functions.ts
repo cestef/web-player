@@ -1,21 +1,6 @@
 import MediaTags, { Tags } from "jsmediatags";
 import { MutableRefObject, SetStateAction } from "react";
 import { PartialSong, Song } from "./components/App";
-export const getAudioBuffer = (
-  ctx: AudioContext,
-  file: File & { buffer: ArrayBuffer }
-) =>
-  new Promise<AudioBuffer>(async (resolve, reject) => {
-    ctx.decodeAudioData(
-      file.buffer.slice(0),
-      (buffer) => {
-        resolve(buffer);
-      },
-      (error) => {
-        if (error) reject(error.message);
-      }
-    );
-  });
 
 export const shuffleArray = (queue: Song[], currentSong: number) => {
   let currentIndex: number = queue.length,
@@ -73,7 +58,6 @@ export const mapQueueToSongList = (queue: Song[]): PartialSong[] =>
   queue.map((e) => ({
     name: e.file.name,
     id: e.id,
-    duration: e.buffer?.duration,
     tags: e.tags,
     coverURL: e.coverURL,
   }));
@@ -83,10 +67,6 @@ export const setBool = (key: string, value: boolean) =>
   localStorage.setItem(key, `${value}`);
 
 export const playAudio = async ({
-  source,
-  lastPaused,
-  startTime,
-  gainNode,
   setIsPlaying,
   setSongPlaying,
   currentSong,
@@ -94,14 +74,13 @@ export const playAudio = async ({
   ended,
   isPlayingStatic,
   queue,
-  buffer,
-  ctx,
   volume,
+  audio,
+  url,
+  loop,
 }: {
-  source: MutableRefObject<AudioBufferSourceNode>;
   lastPaused: MutableRefObject<number>;
   startTime: MutableRefObject<number>;
-  gainNode: MutableRefObject<GainNode>;
   setIsPlaying: (value: SetStateAction<boolean>) => void;
   setSongPlaying: (value: SetStateAction<string>) => void;
   currentSong: MutableRefObject<number>;
@@ -109,34 +88,23 @@ export const playAudio = async ({
   ended: MutableRefObject<boolean>;
   isPlayingStatic: MutableRefObject<boolean>;
   queue: MutableRefObject<Song[]>;
-  buffer?: AudioBuffer;
-  ctx: AudioContext;
+  url: string;
   volume: number;
+  audio: MutableRefObject<HTMLAudioElement>;
+  loop: boolean;
 }) => {
-  if (!buffer) {
-    buffer = await getAudioBuffer(ctx, queue.current[currentSong.current].file);
-  }
-  if (source.current) {
-    source.current.disconnect();
-    source.current.onended = null;
-    source.current.stop();
-  }
-  startTime.current = Date.now() - lastPaused.current * 1000;
-  source.current = ctx.createBufferSource();
+  if (audio.current) audio.current.pause();
+  audio.current = new Audio(url);
+  audio.current.volume = volume;
+  audio.current.loop = loop;
   ended.current = false;
-  source.current.buffer = buffer;
-  gainNode.current = ctx.createGain();
-  gainNode.current.gain.value = volume;
-  gainNode.current.connect(ctx.destination);
-  source.current.connect(gainNode.current);
-  source.current.start(0, lastPaused.current);
   isPlayingStatic.current = true;
   setIsPlaying(true);
   setSongPlaying(queue.current[currentSong.current].file.name);
-  source.current.onended = () => {
+  audio.current.onended = () => {
     ended.current = nextSong();
   };
-  return buffer;
+  audio.current.play();
 };
 
 export const genID = (len: number) => {
