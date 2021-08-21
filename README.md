@@ -4,7 +4,7 @@ This is just a random quick project I made during vacations because I had no int
 
 The webapp is clearly not optimized, please do not yell at me for declaring 32 states in a row and re-rendering every 2ms ':)
 
-Made with React using jsmediatags to extract files tags and native JS's Audiobuffer API
+Made with React using jsmediatags to extract files tags and native JS's Audio API
 
 ## Starting the app
 
