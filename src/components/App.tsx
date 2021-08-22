@@ -10,7 +10,7 @@ import {
   MenuItem,
   Slider,
   TextField,
-  Typography,
+  Typography
 } from "@material-ui/core";
 import { Delete, Edit, GetApp, Publish } from "@material-ui/icons";
 import { saveAs } from "file-saver";
@@ -26,7 +26,7 @@ import {
   mapQueueToSongList,
   playAudio,
   setBool,
-  shuffleArray,
+  shuffleArray
 } from "../functions";
 import { ControlsPropsType } from "./Controls";
 import FileInput, { FileInputPropsType } from "./FileInput";
@@ -541,7 +541,7 @@ const App = ({
         open={openEditPlaylist}
         onClose={() => setOpenEditPlaylist(false)}
       >
-        <DialogTitle>Subscribe</DialogTitle>
+        <DialogTitle>Playlist</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
