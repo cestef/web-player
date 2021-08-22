@@ -339,6 +339,7 @@ const App = ({
   const importPlaylist = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.currentTarget.files[0];
     if (file) {
+      setPlaylist(e => ({...e, name:file.name.replace(".playlist", "")}))
       const buffer = await file.arrayBuffer();
       let playlist: string[] = [];
       try {
@@ -420,7 +421,7 @@ const App = ({
                     }}
                   >
                     <IconButton
-                      style={{ marginTop: -5, marginLeft: 10 }}
+                      style={{ marginTop: -5, marginRight: 10 }}
                       onClick={() => setOpenEditPlaylist(true)}
                     >
                       <Edit />
@@ -443,7 +444,7 @@ const App = ({
                       onChange={importPlaylist}
                     />
                     <IconButton
-                      style={{ marginTop: -5, marginLeft: 5 }}
+                      style={{ marginTop: -10, marginLeft: 5 }}
                       onClick={exportPlaylist}
                     >
                       <Publish />
