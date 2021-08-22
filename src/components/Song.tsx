@@ -23,7 +23,6 @@ export interface SongPropsType {
   index: number;
   queue?: MutableRefObject<SongType[]>;
   currentSong?: MutableRefObject<number>;
-  lastPaused?: MutableRefObject<number>;
   initAudio?: (url: string) => void;
   setClickMenuAnchorEl?: (value: SetStateAction<HTMLDivElement>) => void;
   setClickMenuID?: (value: SetStateAction<string>) => void;
@@ -34,7 +33,6 @@ const Song = ({
   index,
   queue,
   currentSong,
-  lastPaused,
   initAudio,
   setClickMenuAnchorEl,
   setClickMenuID,
@@ -57,7 +55,6 @@ const Song = ({
             className={classes.song}
             onClick={() => {
               if (currentSong.current !== index) {
-                lastPaused.current = 0;
                 currentSong.current = index;
                 initAudio(queue.current[index].url);
               }

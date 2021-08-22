@@ -1,17 +1,19 @@
 import {
-  Checkbox,
-  FormGroup,
-  FormLabel,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   Grid,
+  IconButton,
   List,
   makeStyles,
   Menu,
   MenuItem,
   Slider,
-  Tooltip,
+  TextField,
   Typography,
 } from "@material-ui/core";
-import { Delete } from "@material-ui/icons";
+import { Delete, Edit, GetApp, Publish } from "@material-ui/icons";
+import { saveAs } from "file-saver";
 import { Tags } from "jsmediatags";
 import { SetStateAction, useEffect, useRef, useState } from "react";
 import { DragDropContext, Droppable, DropResult } from "react-beautiful-dnd";
@@ -19,6 +21,7 @@ import { DropEvent, FileRejection } from "react-dropzone";
 import {
   genID,
   getBool,
+  getHash,
   getTags,
   mapQueueToSongList,
   playAudio,
@@ -27,6 +30,7 @@ import {
 } from "../functions";
 import { ControlsPropsType } from "./Controls";
 import FileInput, { FileInputPropsType } from "./FileInput";
+import MenuBox from "./MenuBox";
 import Player, { PlayerPropsType } from "./Player";
 import SongT, { SongPropsType } from "./Song";
 
@@ -86,12 +90,17 @@ export interface Song {
   tags: Tags;
   coverURL?: string;
   url: string;
+  hash: string;
 }
 export interface PartialSong {
   name: string;
   id: string;
   tags: Tags;
   coverURL?: string;
+  hash: string;
+}
+export interface Playlist {
+  name: string;
 }
 
 const App = ({
@@ -104,12 +113,15 @@ const App = ({
   const queue = useRef<Song[]>([]);
   const currentSong = useRef<number>(-1);
   const ended = useRef<boolean>(false);
-  const lastPaused = useRef<number>(0);
   const startTime = useRef<number>();
   const isPlayingStatic = useRef<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [loop, setLoop] = useState<boolean>(false);
-
+  const [openEditPlaylist, setOpenEditPlaylist] = useState(false);
+  const [playlist, setPlaylist] = useState<Playlist>({
+    name: "Untitled playlist",
+  });
+  const [playlistNameInput, setPlaylistNameInput] = useState("");
   const [anchorElVolume, setAnchorElVolume] = useState<null | HTMLElement>(
     null
   );
@@ -152,12 +164,27 @@ const App = ({
       if (songPlaying) document.title = songPlaying;
       else document.title = "cstef's Web Player";
     }, 5000);
+    const keyDown = (e: KeyboardEvent) => {
+      switch (e.code) {
+        case "ArrowRight":
+          ended.current = nextSong();
+          break;
+        case "ArrowLeft":
+          previousSong();
+          break;
+      }
+    };
+    window.addEventListener("keydown", keyDown);
     return () => {
+      window.removeEventListener("keypress", keyDown);
       clearInterval(updateInterval);
       clearInterval(titleInterval);
     };
-  }, [songPlaying, songProgress]);
+  }, []);
   const initAudio = async (url: string, volume: number = 1) => {
+    if (ended.current && queue.current.length > 0) {
+      currentSong.current = 0;
+    }
     await playAudio({
       url,
       volume,
@@ -167,7 +194,6 @@ const App = ({
       setIsPlaying,
       setSongPlaying,
       startTime,
-      lastPaused,
       isPlayingStatic,
       ended,
       audio,
@@ -178,7 +204,6 @@ const App = ({
   const nextSong = () => {
     if (queue.current[currentSong.current + 1]) {
       currentSong.current++;
-      lastPaused.current = 0;
       initAudio(queue.current[currentSong.current].url);
       return false;
     } else {
@@ -189,11 +214,9 @@ const App = ({
   };
   const previousSong = () => {
     if (queue.current[currentSong.current - 1]) {
-      lastPaused.current = 0;
       currentSong.current--;
       initAudio(queue.current[currentSong.current].url);
-    } else {
-      lastPaused.current = 0;
+    } else if (queue.current[currentSong.current]) {
       initAudio(queue.current[currentSong.current].url);
     }
   };
@@ -201,7 +224,8 @@ const App = ({
   const shuffleSongs = () => {
     const { queue: newQueue, currentSong: newCurrentSong } = shuffleArray(
       queue.current,
-      currentSong.current
+      currentSong.current,
+      getBool("keepposition")
     );
     queue.current = newQueue;
     currentSong.current = newCurrentSong;
@@ -216,6 +240,8 @@ const App = ({
     setProgress({ current: 0, total: files.length });
     for await (let file of files as File[] & { buffer: ArrayBuffer }[]) {
       const tags = await getTags(file);
+      const buffer = await file.arrayBuffer();
+      const hash = getHash(buffer);
       let coverURL: string = "";
       if (tags.picture)
         coverURL = URL.createObjectURL(
@@ -225,13 +251,12 @@ const App = ({
         ...file,
         name: file.name.replace(new RegExp(ACCEPT.join("|"), "g"), ""),
       };
-      const buffer: ArrayBuffer | null = await file.arrayBuffer();
       const url = window.URL.createObjectURL(new Blob([buffer]));
       const id = genID(5);
       const length = queue.current.length;
       queue.current = [
         ...queue.current,
-        { url, file: newFile, id, tags, coverURL },
+        { url, file: newFile, id, tags, coverURL, hash },
       ];
       setSongList(mapQueueToSongList(queue.current));
 
@@ -250,7 +275,7 @@ const App = ({
     setLoop((e) => !e);
   };
   const togglePlay = () => {
-    if (!audio.current) return;
+    if (!audio.current) return console.log("No audio");
     if (!isPlaying) {
       audio.current.play();
       isPlayingStatic.current = true;
@@ -277,7 +302,7 @@ const App = ({
   };
 
   const changeVolume = (e, value) => {
-    audio.current.volume = value / 100;
+    if (audio.current) audio.current.volume = value / 100;
     setVolume(value);
   };
   const deleteSong = () => {
@@ -300,8 +325,43 @@ const App = ({
     setSongProgress(value);
     audio.current.fastSeek((value / 100) * audio.current.duration);
   };
+
+  const exportPlaylist = () => {
+    saveAs(
+      new Blob([JSON.stringify(songList.map((e) => e.hash))]),
+      playlist.name + ".playlist"
+    );
+  };
+  const startImportPlaylist = () => {
+    const input = document.getElementById("playlistinput");
+    input.click();
+  };
+  const importPlaylist = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.currentTarget.files[0];
+    if (file) {
+      const buffer = await file.arrayBuffer();
+      let playlist: string[] = [];
+      try {
+        playlist = JSON.parse(new TextDecoder("utf-8").decode(buffer));
+      } catch (e) {
+        console.log(e);
+      }
+      for (let i = 0; i < playlist.length; i++) {
+        const currentIndex = queue.current.findIndex(
+          (e) => e.hash === playlist[i]
+        );
+        if (currentIndex !== -1) {
+          const [removed] = queue.current.splice(currentIndex, 1);
+          if (queue.current[i]) {
+            if (currentSong.current === currentIndex) currentSong.current = i;
+            queue.current.splice(i, 0, removed);
+          } else queue.current.push(removed);
+        }
+      }
+      setSongList(mapQueueToSongList(queue.current));
+    }
+  };
   const songProps: Partial<SongPropsType> = {
-    lastPaused,
     currentSong,
     initAudio,
     queue,
@@ -351,6 +411,45 @@ const App = ({
                   {...provided.droppableProps}
                   className={classes.listRoot}
                 >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <IconButton
+                      style={{ marginTop: -5, marginLeft: 10 }}
+                      onClick={() => setOpenEditPlaylist(true)}
+                    >
+                      <Edit />
+                    </IconButton>
+                    <Typography variant="h6">
+                      <code>{playlist.name || "Untitled playlist"}</code> | 
+                      {songList.length} song{songList.length > 1 ? "s" : ""}
+                    </Typography>
+                    <IconButton
+                      style={{ marginTop: -5, marginLeft: 10 }}
+                      onClick={startImportPlaylist}
+                    >
+                      <GetApp />
+                    </IconButton>
+                    <input
+                      type="file"
+                      accept=".playlist"
+                      style={{ display: "none" }}
+                      id="playlistinput"
+                      onChange={importPlaylist}
+                    />
+                    <IconButton
+                      style={{ marginTop: -5, marginLeft: 5 }}
+                      onClick={exportPlaylist}
+                    >
+                      <Publish />
+                    </IconButton>
+                  </div>
+
                   <List className={classes.songList}>
                     {songList.map((song, i) => (
                       <SongT
@@ -379,14 +478,20 @@ const App = ({
           paper: classes.volume,
         }}
       >
-        <Slider
-          min={0}
-          max={100}
-          value={volume}
-          onChange={changeVolume}
-          style={{ height: 100, padding: 15, marginTop: 10, marginBottom: -3 }}
-          orientation="vertical"
-        />
+        <MenuItem button={false}>
+          <Slider
+            min={0}
+            max={100}
+            value={volume}
+            onChange={changeVolume}
+            style={{
+              height: 100,
+              marginTop: 15,
+              marginBottom: 15,
+            }}
+            orientation="vertical"
+          />
+        </MenuItem>
       </Menu>
 
       <Menu
@@ -417,30 +522,41 @@ const App = ({
         getContentAnchorEl={null}
       >
         <MenuItem button={false} style={{ flexDirection: "column" }}>
-          <FormGroup>
-            <FormLabel>Auto-Shuffle on add</FormLabel>
-            <Tooltip
-              title={
-                <Typography variant="body2" style={{ textAlign: "center" }}>
-                  Shuffle the playlist when you add new songs
-                </Typography>
-              }
-              placement="bottom"
-              arrow
-              enterDelay={1000}
-              enterTouchDelay={1000}
-              enterNextDelay={1000}
-            >
-              <Checkbox
-                disableRipple
-                style={{ backgroundColor: "transparent" }}
-                onChange={(e) => setBool("autoshuffle", e.target.checked)}
-                defaultChecked={getBool("autoshuffle")}
-              />
-            </Tooltip>
-          </FormGroup>
+          <MenuBox
+            onChange={(e) => setBool("autoshuffle", e.target.checked)}
+            defaultChecked={getBool("autoshuffle")}
+            tooltip="Shuffle the playlist when you add new songs"
+            label="Auto-Shuffle on add"
+          />
+          <MenuBox
+            onChange={(e) => setBool("keepposition", e.target.checked)}
+            defaultChecked={getBool("keepposition")}
+            tooltip="Prevents the currently playing song to be moved from its
+            current position in the playlist when shuffling"
+            label="Keep current song position"
+          />
         </MenuItem>
       </Menu>
+      <Dialog
+        open={openEditPlaylist}
+        onClose={() => setOpenEditPlaylist(false)}
+      >
+        <DialogTitle>Subscribe</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="name"
+            label="Playlist Name"
+            type="text"
+            fullWidth
+            value={playlist.name}
+            onChange={(e) =>
+              setPlaylist((p) => ({ ...p, name: e.target.value }))
+            }
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

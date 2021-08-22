@@ -1,8 +1,13 @@
+import { createHash } from "crypto";
 import MediaTags, { Tags } from "jsmediatags";
 import { MutableRefObject, SetStateAction } from "react";
 import { PartialSong, Song } from "./components/App";
 
-export const shuffleArray = (queue: Song[], currentSong: number) => {
+export const shuffleArray = (
+  queue: Song[],
+  currentSong: number,
+  keepPosition: boolean = false
+) => {
   let currentIndex: number = queue.length,
     temporaryValue: Song,
     randomIndex: number,
@@ -15,7 +20,14 @@ export const shuffleArray = (queue: Song[], currentSong: number) => {
     queue[currentIndex] = queue[randomIndex];
     queue[randomIndex] = temporaryValue;
   }
-  currentSong = queue.findIndex((e) => e.id === currentSongID);
+  const newIndex = queue.findIndex((e) => e.id === currentSongID);
+  if (keepPosition) {
+    const tempSong = queue[newIndex];
+    queue[newIndex] = queue[currentSong];
+    queue[currentSong] = tempSong;
+  } else {
+    currentSong = newIndex;
+  }
   return { queue, currentSong };
 };
 
@@ -30,6 +42,9 @@ export const getTags = (file: any) =>
       },
     });
   });
+
+export const getHash = (arrayBuffer: ArrayBuffer) =>
+  createHash("sha256").update(Buffer.from(arrayBuffer)).digest("base64");
 
 export const formatMilliseconds = (
   milliseconds: number,
@@ -60,6 +75,7 @@ export const mapQueueToSongList = (queue: Song[]): PartialSong[] =>
     id: e.id,
     tags: e.tags,
     coverURL: e.coverURL,
+    hash: e.hash,
   }));
 
 export const getBool = (key: string) => localStorage.getItem(key) === "true";
@@ -79,7 +95,6 @@ export const playAudio = async ({
   url,
   loop,
 }: {
-  lastPaused: MutableRefObject<number>;
   startTime: MutableRefObject<number>;
   setIsPlaying: (value: SetStateAction<boolean>) => void;
   setSongPlaying: (value: SetStateAction<string>) => void;
@@ -93,7 +108,10 @@ export const playAudio = async ({
   audio: MutableRefObject<HTMLAudioElement>;
   loop: boolean;
 }) => {
-  if (audio.current) audio.current.pause();
+  if (audio.current) {
+    audio.current.pause();
+    audio.current.remove();
+  }
   audio.current = new Audio(url);
   audio.current.volume = volume;
   audio.current.loop = loop;

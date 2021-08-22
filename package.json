@@ -5,6 +5,7 @@
   "dependencies": {
     "@material-ui/core": "^4.12.3",
     "@material-ui/icons": "^4.11.2",
+    "file-saver": "^2.0.5",
     "jsmediatags": "^3.9.7",
     "react": "^17.0.2",
     "react-beautiful-dnd": "^13.1.0",
@@ -15,6 +16,7 @@
     "web-vitals": "^1.1.2"
   },
   "devDependencies": {
+    "@types/file-saver": "^2.0.3",
     "@types/jsmediatags": "^3.9.3",
     "@types/node": "^12.20.19",
     "@types/react": "^17.0.18",
