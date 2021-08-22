@@ -1,8 +1,9 @@
 import {
   Box,
-  IconButton, makeStyles,
+  IconButton,
+  makeStyles,
   Slider,
-  Typography
+  Typography,
 } from "@material-ui/core";
 import { MusicNote, Settings, VolumeUp } from "@material-ui/icons";
 import { MutableRefObject, SetStateAction } from "react";
@@ -12,10 +13,10 @@ import Controls from "./Controls";
 
 const useStyles = makeStyles((theme) => ({
   progress: {
-    width: 550,
     [theme.breakpoints.down("xs")]: {
-      width: "calc(100vw - 64px)",
+      width: "min-content",
     },
+    width: 550,
     marginTop: 50,
   },
   player: {
@@ -51,7 +52,7 @@ export interface PlayerPropsType {
   songProgress: number;
   controlsProps: any;
   audio: MutableRefObject<HTMLAudioElement>;
-  seek: (event: React.ChangeEvent<{}>, value: number | number[]) => void
+  seek: (event: React.ChangeEvent<{}>, value: number | number[]) => void;
 }
 const Player = ({
   songList,
@@ -62,7 +63,7 @@ const Player = ({
   setAnchorElVolume,
   controlsProps,
   audio,
-  seek
+  seek,
 }: PlayerPropsType) => {
   const classes = useStyles();
   return (
@@ -109,7 +110,13 @@ const Player = ({
           </Box>
 
           <Box mr={1} ml={1}>
-            <Slider value={songProgress} onChange={seek} className={classes.progressBar} min={0} max={100} />
+            <Slider
+              value={songProgress}
+              onChange={seek}
+              className={classes.progressBar}
+              min={0}
+              max={100}
+            />
           </Box>
 
           <Box minWidth={35}>

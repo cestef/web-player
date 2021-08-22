@@ -9,7 +9,7 @@ import {
   MenuItem,
   Slider,
   Tooltip,
-  Typography
+  Typography,
 } from "@material-ui/core";
 import { Delete } from "@material-ui/icons";
 import { Tags } from "jsmediatags";
@@ -23,7 +23,7 @@ import {
   mapQueueToSongList,
   playAudio,
   setBool,
-  shuffleArray
+  shuffleArray,
 } from "../functions";
 import { ControlsPropsType } from "./Controls";
 import FileInput, { FileInputPropsType } from "./FileInput";
@@ -34,6 +34,10 @@ const ACCEPT = [".mp3", ".mp4", ".m4v", ".flac", ".mov", ".ogg"];
 
 const useStyles = makeStyles((theme) => ({
   root: {
+    [theme.breakpoints.down("xs")]: {
+      padding: 5,
+      margin: 0,
+    },
     padding: 20,
     margin: 10,
     display: "flex",
@@ -41,6 +45,7 @@ const useStyles = makeStyles((theme) => ({
     justifyContent: "center",
     textAlign: "center",
     flexDirection: "column",
+    overflowX: "hidden",
   },
   loading: {
     position: "relative",
@@ -291,10 +296,10 @@ const App = ({
   };
 
   const seek = (event: React.ChangeEvent<{}>, value: number) => {
-    if (!audio.current) return
-    setSongProgress(value)
-    audio.current.fastSeek((value / 100) * (audio.current.duration))
-  }
+    if (!audio.current) return;
+    setSongProgress(value);
+    audio.current.fastSeek((value / 100) * audio.current.duration);
+  };
   const songProps: Partial<SongPropsType> = {
     lastPaused,
     currentSong,
@@ -321,7 +326,7 @@ const App = ({
     songProgress,
     controlsProps,
     audio,
-    seek
+    seek,
   };
   const fileInputProps: FileInputPropsType = {
     addFiles,
