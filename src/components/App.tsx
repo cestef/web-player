@@ -3,20 +3,17 @@ import {
   DialogContent,
   DialogTitle,
   Grid,
-  IconButton,
-  List,
   makeStyles,
   Menu,
   MenuItem,
   Slider,
-  TextField,
-  Typography
+  TextField
 } from "@material-ui/core";
-import { Delete, Edit, GetApp, Publish } from "@material-ui/icons";
+import { Cloud, Delete, YouTube } from "@material-ui/icons";
 import { saveAs } from "file-saver";
 import { Tags } from "jsmediatags";
 import { SetStateAction, useEffect, useRef, useState } from "react";
-import { DragDropContext, Droppable, DropResult } from "react-beautiful-dnd";
+import { DropResult } from "react-beautiful-dnd";
 import { DropEvent, FileRejection } from "react-dropzone";
 import {
   genID,
@@ -32,7 +29,8 @@ import { ControlsPropsType } from "./Controls";
 import FileInput, { FileInputPropsType } from "./FileInput";
 import MenuBox from "./MenuBox";
 import Player, { PlayerPropsType } from "./Player";
-import SongT, { SongPropsType } from "./Song";
+import { SongPropsType } from "./Song";
+import SongList, { SongListPropsType } from "./SongList";
 
 const ACCEPT = [".mp3", ".mp4", ".m4v", ".flac", ".mov", ".ogg"];
 
@@ -57,10 +55,7 @@ const useStyles = makeStyles((theme) => ({
     height: 30,
     width: 30,
   },
-  songList: {
-    marginTop: 20,
-    maxWidth: "calc(100vw - 64px)",
-  },
+
   volume: {
     overflowY: "hidden",
   },
@@ -69,9 +64,6 @@ const useStyles = makeStyles((theme) => ({
       position: "sticky",
       top: 0,
     },
-  },
-  listRoot: {
-    marginTop: 20,
   },
   songListRoot: {
     display: "flex",
@@ -121,7 +113,6 @@ const App = ({
   const [playlist, setPlaylist] = useState<Playlist>({
     name: "Untitled playlist",
   });
-  const [playlistNameInput, setPlaylistNameInput] = useState("");
   const [anchorElVolume, setAnchorElVolume] = useState<null | HTMLElement>(
     null
   );
@@ -130,6 +121,8 @@ const App = ({
     null
   );
   const isSettingsMenuOpen = Boolean(anchorElSettings);
+  const [moreAnchorEl, setMoreAnchorEl] = useState(null);
+  const moreOpen = Boolean(moreAnchorEl);
   const [clickMenuAnchorEl, setClickMenuAnchorEl] =
     useState<null | HTMLElement>(null);
   const [clickMenuID, setClickMenuID] = useState<string>(null);
@@ -339,7 +332,7 @@ const App = ({
   const importPlaylist = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.currentTarget.files[0];
     if (file) {
-      setPlaylist(e => ({...e, name:file.name.replace(".playlist", "")}))
+      setPlaylist((e) => ({ ...e, name: file.name.replace(".playlist", "") }));
       const buffer = await file.arrayBuffer();
       let playlist: string[] = [];
       try {
@@ -394,6 +387,17 @@ const App = ({
     ACCEPT,
     loading,
     progress,
+    setMoreAnchorEl,
+  };
+  const songListProps: SongListPropsType = {
+    dropSong,
+    exportPlaylist,
+    startImportPlaylist,
+    importPlaylist,
+    songList,
+    songProps,
+    playlist,
+    setOpenEditPlaylist,
   };
 
   return (
@@ -404,70 +408,10 @@ const App = ({
         </Grid>
         <Grid item xs className={classes.songListRoot}>
           <FileInput {...fileInputProps} />
-          <DragDropContext onDragEnd={dropSong}>
-            <Droppable droppableId="songs">
-              {(provided) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className={classes.listRoot}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <IconButton
-                      style={{ marginTop: -5, marginRight: 10 }}
-                      onClick={() => setOpenEditPlaylist(true)}
-                    >
-                      <Edit />
-                    </IconButton>
-                    <Typography variant="h6">
-                      <code>{playlist.name || "Untitled playlist"}</code> | 
-                      {songList.length} song{songList.length > 1 ? "s" : ""}
-                    </Typography>
-                    <IconButton
-                      style={{ marginTop: -5, marginLeft: 10 }}
-                      onClick={startImportPlaylist}
-                    >
-                      <GetApp />
-                    </IconButton>
-                    <input
-                      type="file"
-                      accept=".playlist"
-                      style={{ display: "none" }}
-                      id="playlistinput"
-                      onChange={importPlaylist}
-                    />
-                    <IconButton
-                      style={{ marginTop: -10, marginLeft: 5 }}
-                      onClick={exportPlaylist}
-                    >
-                      <Publish />
-                    </IconButton>
-                  </div>
-
-                  <List className={classes.songList}>
-                    {songList.map((song, i) => (
-                      <SongT
-                        {...songProps}
-                        song={song}
-                        index={i}
-                        key={song.id}
-                      />
-                    ))}
-                  </List>
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
+          <SongList {...songListProps} />
         </Grid>
       </Grid>
+
       <Menu
         open={isVolumeMenuOpen}
         anchorEl={anchorElVolume}
@@ -538,6 +482,22 @@ const App = ({
           />
         </MenuItem>
       </Menu>
+      <Menu
+        open={moreOpen}
+        anchorEl={moreAnchorEl}
+        onClose={() => setMoreAnchorEl(null)}
+        anchorOrigin={{ vertical: "top", horizontal: "left" }}
+        keepMounted
+        getContentAnchorEl={null}
+      >
+        <MenuItem>
+          <YouTube style={{ marginRight: 5, marginTop: -3 }} /> Youtube
+        </MenuItem>
+        <MenuItem>
+          <Cloud style={{ marginRight: 5, marginTop: -3 }} /> SoundCloud
+        </MenuItem>
+      </Menu>
+
       <Dialog
         open={openEditPlaylist}
         onClose={() => setOpenEditPlaylist(false)}
