@@ -3,7 +3,7 @@ import {
   IconButton,
   makeStyles,
   Slider,
-  Typography
+  Typography,
 } from "@material-ui/core";
 import { MusicNote, Settings, VolumeUp } from "@material-ui/icons";
 import { MutableRefObject, SetStateAction } from "react";
@@ -24,8 +24,8 @@ const useStyles = makeStyles((theme) => ({
       marginTop: 100,
     },
     [theme.breakpoints.up("lg")]: {
-      position:"sticky",
-      top:0
+      position: "sticky",
+      top: 0,
     },
     marginTop: 40,
     display: "flex",

@@ -7,7 +7,7 @@ import {
   Menu,
   MenuItem,
   Slider,
-  TextField
+  TextField,
 } from "@material-ui/core";
 import { Cloud, Delete, YouTube } from "@material-ui/icons";
 import { saveAs } from "file-saver";
@@ -23,7 +23,7 @@ import {
   mapQueueToSongList,
   playAudio,
   setBool,
-  shuffleArray
+  shuffleArray,
 } from "../functions";
 import { ControlsPropsType } from "./Controls";
 import FileInput, { FileInputPropsType } from "./FileInput";
