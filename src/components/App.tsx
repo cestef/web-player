@@ -7,32 +7,27 @@ import {
     Menu,
     MenuItem,
     Slider,
-    TextField,
+    TextField
 } from "@material-ui/core";
 import { Cloud, Delete, Description, YouTube } from "@material-ui/icons";
 import { saveAs } from "file-saver";
 import { Tags } from "jsmediatags";
 import { SetStateAction, useEffect, useRef, useState } from "react";
 import { DropResult } from "react-beautiful-dnd";
-import { DropEvent, FileRejection } from "react-dropzone";
 import {
-    genID,
     getBool,
-    getHash,
-    getTags,
     mapQueueToSongList,
     playAudio,
     setBool,
-    shuffleArray,
+    shuffleArray
 } from "../functions";
 import { ControlsPropsType } from "./Controls";
-import FileInput, { FileInputPropsType } from "./inputs/FileInput";
+import { FileInputPropsType } from "./inputs/FileInput";
+import Root, { RootInputPropsType } from "./inputs/Root";
 import MenuBox from "./MenuBox";
 import Player, { PlayerPropsType } from "./Player";
 import { SongPropsType } from "./Song";
 import SongList, { SongListPropsType } from "./SongList";
-import Root from "./inputs/Root";
-import { RootInputPropsType } from "./inputs/Root";
 
 const ACCEPT = [".mp3", ".mp4", ".m4v", ".flac", ".mov", ".ogg"];
 
